@@ -28,7 +28,9 @@ bool Deck::empty() const { return cards_.empty(); }
 void Deck::add(const Card &card) { cards_.push_back(card); }
 
 Card Deck::draw() {
-    assert(!cards_.empty());
+    assert(
+        !cards_
+             .empty()); // Debug-only guard (compiled out when NDEBUG is set, e.g. Release builds).
     Card top = cards_.back();
     cards_.pop_back();
     return top;

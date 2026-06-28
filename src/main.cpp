@@ -1,3 +1,5 @@
+// Entry point for the game. Constructs the Game (window + main loop) and runs
+// it until the player closes the window. See app/Game.* for everything else.
 #include "app/Game.hpp"
 
 int main() {

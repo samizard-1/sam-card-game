@@ -15,6 +15,8 @@ enum class Facing { Down, Up };
 struct Card {
     int id = 0;       // unique id within a deck
     std::string name; // display name shown on the face
+    // Which side is up. NOTE: the reference slice currently tracks face/back in
+    // Game (showFace_); wire this field in when you build real gameplay.
     Facing facing = Facing::Down;
 
     // Text drawn on the card face. Falls back to "Card #<id>" if unnamed.

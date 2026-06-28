@@ -1,0 +1,11 @@
+# Build output
+/build/
+
+# Compiled objects
+*.o
+*.obj
+
+# Tooling / editor
+.cache/
+compile_commands.json
+.DS_Store

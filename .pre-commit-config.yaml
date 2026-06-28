@@ -1,0 +1,26 @@
+# Runs automatically before each commit. clang-format auto-fixes style; the local
+# clang-tidy hook runs the same script the editor and CI use, so nothing surprises
+# you after pushing. The hygiene hooks catch whitespace/merge-conflict mistakes.
+repos:
+  - repo: https://github.com/pre-commit/mirrors-clang-format
+    rev: v18.1.8
+    hooks:
+      - id: clang-format
+        types_or: [c++, c]
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+  - repo: local
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy
+        entry: python3 scripts/run_clang_tidy.py
+        language: system
+        types_or: [c++]
+        files: ^src/
+        pass_filenames: true
+        require_serial: true

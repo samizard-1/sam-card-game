@@ -4,7 +4,7 @@
 
 namespace app {
 
-Game::Game(int width, int height, const char* title) {
+Game::Game(int width, int height, const char *title) {
     InitWindow(width, height, title);
     SetTargetFPS(60);
 }
@@ -31,4 +31,4 @@ void Game::draw() const {
     // TODO(you): draw the table, cards, and UI here.
 }
 
-}  // namespace app
+} // namespace app

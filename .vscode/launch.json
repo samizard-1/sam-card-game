@@ -1,0 +1,15 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug game",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/sam_card_game",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build",
+      "MIMode": "lldb"
+    }
+  ]
+}

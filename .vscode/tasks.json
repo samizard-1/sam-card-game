@@ -12,7 +12,10 @@
       "type": "shell",
       "command": "cmake --build build",
       "dependsOn": "Configure",
-      "group": "build",
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      },
       "problemMatcher": "$gcc"
     },
     {
@@ -24,8 +27,13 @@
     {
       "label": "Build + Tidy",
       "dependsOrder": "sequence",
-      "dependsOn": ["Build", "Tidy"],
-      "group": { "kind": "build", "isDefault": true },
+      "dependsOn": [
+        "Build",
+        "Tidy"
+      ],
+      "group": {
+        "kind": "build"
+      },
       "problemMatcher": []
     },
     {
@@ -33,13 +41,19 @@
       "type": "shell",
       "command": "ctest --test-dir build --output-on-failure",
       "dependsOn": "Build",
-      "group": { "kind": "test", "isDefault": true },
+      "group": {
+        "kind": "test",
+        "isDefault": true
+      },
       "problemMatcher": []
     },
     {
       "label": "Run",
       "type": "shell",
       "command": "./build/sam_card_game",
+      "windows": {
+        "command": "build\\Debug\\sam_card_game.exe"
+      },
       "dependsOn": "Build",
       "problemMatcher": []
     }

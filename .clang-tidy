@@ -4,6 +4,12 @@
 #
 # TODO(you): add more checks as you get comfortable (e.g. the full modernize-*
 # or readability-* groups), or tighten WarningsAsErrors to enforce in-editor.
+# -performance-enum-size: disabled because this check fires on raylib's
+# third-party enums in raylib.h (included transitively by project .cpp files).
+# --warnings-as-errors=* in scripts/run_clang_tidy.py promotes all warnings to
+# errors; clang-tidy processes transitive includes regardless of HeaderFilterRegex,
+# so the check cannot be scoped to project-only headers. Suppress here rather
+# than disabling the whole performance-* group.
 Checks: >
   -*,
   bugprone-*,

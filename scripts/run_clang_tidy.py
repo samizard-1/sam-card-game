@@ -23,9 +23,11 @@ CPP_SUFFIXES = (".cpp", ".cc", ".cxx")
 
 # clang-tidy is keg-only on macOS (brew install llvm); add its bin dir to PATH
 # so the tool is found both in interactive shells and in pre-commit / CI.
-_BREW_LLVM_BIN = Path("/opt/homebrew/opt/llvm/bin")
-if _BREW_LLVM_BIN.is_dir() and not shutil.which("clang-tidy"):
-    os.environ["PATH"] = str(_BREW_LLVM_BIN) + os.pathsep + os.environ.get("PATH", "")
+# Check Apple Silicon (/opt/homebrew) first, then Intel Mac (/usr/local).
+for _BREW_LLVM_BIN in (Path("/opt/homebrew/opt/llvm/bin"), Path("/usr/local/opt/llvm/bin")):
+    if _BREW_LLVM_BIN.is_dir() and not shutil.which("clang-tidy"):
+        os.environ["PATH"] = str(_BREW_LLVM_BIN) + os.pathsep + os.environ.get("PATH", "")
+        break
 
 
 def configure() -> None:

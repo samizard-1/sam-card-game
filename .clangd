@@ -1,0 +1,11 @@
+CompileFlags:
+  Add:
+    - "-IC:/Users/Sam/Documents/sam-card-game/src"
+    - "-IC:/Users/Sam/Documents/sam-card-game/build/_deps/raylib-src/src"
+    - "-IC:/Users/Sam/Documents/sam-card-game/build/_deps/doctest-src"
+    - "-std=c++20"
+    - "-Wall"
+    - "-Wextra"
+  Remove:
+    - "-m*"
+    - "-f*"

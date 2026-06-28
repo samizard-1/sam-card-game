@@ -1,0 +1,49 @@
+{
+  "configurations": [
+    {
+      "name": "Win32",
+      "includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/src/**",
+        "C:/Users/Sam/Documents/sam-card-game/build/_deps/raylib-src/src",
+        "C:/Users/Sam/Documents/sam-card-game/build/_deps/doctest-src",
+        "${workspaceFolder}/**"
+      ],
+      "defines": [],
+      "compilerPath": "cl.exe",
+      "cStandard": "c11",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "msvc-x64",
+      "browse": {
+        "path": [
+          "${workspaceFolder}/src",
+          "${workspaceFolder}/build/_deps/raylib-src/src"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    },
+    {
+      "name": "Clang",
+      "includePath": [
+        "${workspaceFolder}/src",
+        "${workspaceFolder}/src/**",
+        "C:/Users/Sam/Documents/sam-card-game/build/_deps/raylib-src/src",
+        "C:/Users/Sam/Documents/sam-card-game/build/_deps/doctest-src",
+        "${workspaceFolder}/**"
+      ],
+      "defines": [],
+      "compilerPath": "clang",
+      "cStandard": "c11",
+      "cppStandard": "c++20",
+      "intelliSenseMode": "clang-x64",
+      "browse": {
+        "path": [
+          "${workspaceFolder}/src",
+          "${workspaceFolder}/build/_deps/raylib-src/src"
+        ],
+        "limitSymbolsToIncludedHeaders": true
+      }
+    }
+  ],
+  "version": 4
+}

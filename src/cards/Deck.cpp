@@ -1,3 +1,5 @@
+// Deck implementation. buildStandardDeck() is the one place you define which
+// cards exist in the game; all other Deck methods are generic helpers.
 #include "cards/Deck.hpp"
 
 #include <algorithm>

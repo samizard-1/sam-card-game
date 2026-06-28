@@ -1,3 +1,5 @@
+// AIPlayer implementation. takeTurn() is where the computer opponent lives;
+// add all NPC decision-making logic here.
 #include "players/AIPlayer.hpp"
 
 #include <utility>

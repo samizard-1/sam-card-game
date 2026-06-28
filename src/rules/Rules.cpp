@@ -1,3 +1,5 @@
+// Rules implementation. This is your rulebook: setup(), advanceTurn(), and
+// isGameOver() define how the game starts, progresses, and ends.
 #include "rules/Rules.hpp"
 
 namespace rules {

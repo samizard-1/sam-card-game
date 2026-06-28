@@ -1,3 +1,5 @@
+// CardRenderer implementation. This is the single place that controls how a
+// card looks on screen: colors, shapes, and eventually custom art.
 #include "render/CardRenderer.hpp"
 
 #include <string>

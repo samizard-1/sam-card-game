@@ -1,3 +1,5 @@
+// Game implementation. This is the spine of the application: it owns the
+// window, drives the main loop, and wires together cards, rules, and rendering.
 #include "app/Game.hpp"
 
 #include "raylib.h"

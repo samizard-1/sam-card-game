@@ -39,6 +39,25 @@ def configure() -> None:
     )
 
 
+def _macos_sysroot_args() -> list[str]:
+    """Return --extra-arg=-isysroot<path> when running on macOS with a brew
+    LLVM clang-tidy.  Brew LLVM doesn't know the Xcode/CLT SDK path, so
+    standard C++ headers (e.g. <string>) are invisible to it unless we pass
+    -isysroot explicitly.  The xcrun call is fast (~10 ms) and is a no-op on
+    Linux / CI where xcrun doesn't exist."""
+    if not shutil.which("xcrun"):
+        return []
+    result = subprocess.run(
+        ["xcrun", "--show-sdk-path"],
+        capture_output=True,
+        text=True,
+    )
+    sdk = result.stdout.strip()
+    if sdk:
+        return [f"--extra-arg=-isysroot{sdk}"]
+    return []
+
+
 def main(argv: list[str]) -> int:
     if argv:
         # Called with explicit files (e.g. by pre-commit): only check the .cpp.
@@ -53,6 +72,7 @@ def main(argv: list[str]) -> int:
 
     configure()
     cmd = ["clang-tidy", "-p", str(BUILD), "--warnings-as-errors=*"]
+    cmd += _macos_sysroot_args()
     cmd += [str(f) for f in files]
     print("Running:", " ".join(cmd))
     return subprocess.run(cmd, cwd=ROOT).returncode

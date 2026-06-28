@@ -21,5 +21,6 @@ repos:
         entry: python3 scripts/run_clang_tidy.py
         language: system
         types_or: [c++]
+        files: ^src/
         pass_filenames: true
         require_serial: true

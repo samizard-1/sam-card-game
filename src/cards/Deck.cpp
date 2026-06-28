@@ -1,6 +1,7 @@
 #include "cards/Deck.hpp"
 
 #include <algorithm>
+#include <cassert>
 #include <random>
 
 namespace cards {
@@ -25,6 +26,7 @@ bool Deck::empty() const { return cards_.empty(); }
 void Deck::add(const Card &card) { cards_.push_back(card); }
 
 Card Deck::draw() {
+    assert(!cards_.empty());
     Card top = cards_.back();
     cards_.pop_back();
     return top;

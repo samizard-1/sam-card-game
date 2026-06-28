@@ -37,6 +37,7 @@ add_library(game_core
     src/app/Game.cpp
     src/cards/Card.cpp
     src/cards/Deck.cpp
+    src/render/Animation.cpp
 )
 target_include_directories(game_core PUBLIC src)
 target_link_libraries(game_core PUBLIC raylib)
@@ -49,6 +50,7 @@ target_link_libraries(sam_card_game PRIVATE game_core)
 enable_testing()
 add_executable(unit_tests
     tests/deck_test.cpp
+    tests/animation_test.cpp
 )
 target_link_libraries(unit_tests PRIVATE game_core doctest::doctest)
 add_test(NAME unit_tests COMMAND unit_tests)

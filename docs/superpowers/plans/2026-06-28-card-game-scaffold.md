@@ -31,8 +31,13 @@ These apply to **every** task:
 | `src/main.cpp` | Entry point: create `Game`, run it | T1 |
 | `src/app/Game.{hpp,cpp}` | Owns window + main loop (the spine) | T1 (T8 wires slice) |
 | `.clang-format` / `.clang-tidy` | Format + lint config | T2 |
-| `.pre-commit-config.yaml` | Auto-format/hygiene on commit | T2 |
-| `.github/workflows/ci.yml` | Build + format/lint on push/PR | T2 |
+| `scripts/run_clang_tidy.py` | Shared tidy runner (task + pre-commit + CI) | T2 |
+| `.vscode/extensions.json` | Recommended extensions (clangd, CMake Tools) | T2 |
+| `.vscode/settings.json` | Inline clang-tidy + format-on-save | T2 |
+| `.vscode/tasks.json` | Build / Tidy / Build+Tidy / Test / Run | T2 |
+| `.vscode/launch.json` | Debug the game | T2 |
+| `.pre-commit-config.yaml` | Auto-format + clang-tidy check on commit | T2 |
+| `.github/workflows/ci.yml` | Build + format check + clang-tidy on push/PR | T2 |
 | `src/cards/Card.{hpp,cpp}` | Card data definition | T3 |
 | `src/cards/Deck.{hpp,cpp}` | Build/shuffle/draw the deck | T3 |
 | `tests/deck_test.cpp` | Example deck tests (doctest main) | T3 |
@@ -48,7 +53,7 @@ These apply to **every** task:
 | `assets/README.md` | Where art/fonts go | T9 |
 | `README.md` | Build + "Where do I add X?" map | T9 |
 
-**Note on tooling deviation from the spec:** `clang-tidy` runs in **CI**, not in the pre-commit hook. clang-tidy needs `compile_commands.json` (a build) to work, which is impractical and confusing to require before every local commit. Pre-commit therefore runs clang-format + basic hygiene; CI runs the build, a clang-format check, and clang-tidy. This keeps the beginner's commit loop fast while still enforcing both tools.
+**clang-tidy runs locally, three ways.** So the beginner gets lint feedback before pushing (and is never surprised by CI), `scripts/run_clang_tidy.py` is the single runner shared by: (1) the `clangd` editor extension, which shows clang-tidy squiggles live as they type; (2) a one-button VSCode **Build + Tidy** task (the default build); and (3) the pre-commit hook. CI runs the same script. The script always (re)configures the CMake build so `compile_commands.json` stays in sync after files are added, and passes `--warnings-as-errors=*` so the gate is real — while `.clang-tidy` keeps `WarningsAsErrors` empty so the editor shows issues as warnings, not blocking errors. clang-format runs on save (visible immediately) and in pre-commit, so code is never silently reformatted after a push.
 
 ---
 
@@ -211,15 +216,21 @@ git commit -m "feat: raylib window skeleton with Game loop"
 
 ---
 
-### Task 2: Code-quality tooling (format, lint, pre-commit, CI)
+### Task 2: Code-quality tooling (format, local clang-tidy, VSCode, pre-commit, CI)
 
 **Files:**
 - Create: `.clang-format`
 - Create: `.clang-tidy`
+- Create: `scripts/run_clang_tidy.py`
+- Create: `.vscode/extensions.json`
+- Create: `.vscode/settings.json`
+- Create: `.vscode/tasks.json`
+- Create: `.vscode/launch.json`
 - Create: `.pre-commit-config.yaml`
 - Create: `.github/workflows/ci.yml`
 
-**Interfaces:** None (config only).
+**Interfaces:**
+- Produces: `scripts/run_clang_tidy.py` — run as `python3 scripts/run_clang_tidy.py [files...]`. With no file args it checks every `src/**/*.cpp`; with file args (how pre-commit calls it) it checks only the `.cpp` among them. It (re)configures the CMake build first and runs `clang-tidy --warnings-as-errors=*`, exiting non-zero on any finding.
 
 - [ ] **Step 1: Create `.clang-format`**
 
@@ -233,27 +244,215 @@ SortIncludes: false
 
 - [ ] **Step 2: Create `.clang-tidy`**
 
+A curated, high-signal check set — small enough to avoid drowning a beginner in
+nitpicks, but real enough to catch bugs. `WarningsAsErrors` is empty *here* so
+the `clangd` editor extension shows findings as yellow warnings (not red errors);
+the shared script adds `--warnings-as-errors=*` on the command line so the
+pre-commit and CI gates are still strict.
+
 ```yaml
-# Warnings are informational (not errors) so beginners are never blocked by the
-# linter. CI surfaces them in the logs. Tighten WarningsAsErrors later if wanted.
+# Curated for a learning codebase: bug-prone + performance + a few high-value
+# modernize/readability checks. Editor severity is "warning" (WarningsAsErrors
+# empty); the pre-commit/CI gate treats them as errors via the shared script.
+#
+# TODO(you): add more checks as you get comfortable (e.g. the full modernize-*
+# or readability-* groups), or tighten WarningsAsErrors to enforce in-editor.
 Checks: >
   -*,
   bugprone-*,
-  modernize-*,
   performance-*,
-  readability-*,
-  -modernize-use-trailing-return-type,
-  -readability-magic-numbers,
-  -readability-identifier-length
+  modernize-use-override,
+  modernize-use-nullptr,
+  modernize-use-emplace,
+  readability-braces-around-statements,
+  readability-misleading-indentation,
+  -bugprone-easily-swappable-parameters
 WarningsAsErrors: ''
 HeaderFilterRegex: 'src/.*'
 ```
 
-- [ ] **Step 3: Create `.pre-commit-config.yaml`**
+- [ ] **Step 3: Create `scripts/run_clang_tidy.py`**
+
+```python
+#!/usr/bin/env python3
+"""Run clang-tidy over the project's own source files.
+
+This is the single tidy runner shared by the VSCode "Tidy" task, the pre-commit
+hook, and CI, so the linter behaves identically everywhere. It always refreshes
+the CMake build (to keep compile_commands.json in sync after files are added),
+then runs clang-tidy with warnings treated as errors.
+
+Usage:
+  python3 scripts/run_clang_tidy.py            # check every src/**/*.cpp
+  python3 scripts/run_clang_tidy.py a.cpp b.hpp # check only the .cpp given
+"""
+import subprocess
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+BUILD = ROOT / "build"
+SRC = ROOT / "src"
+CPP_SUFFIXES = (".cpp", ".cc", ".cxx")
+
+
+def configure() -> None:
+    """(Re)generate build/compile_commands.json. Cheap if already configured."""
+    subprocess.run(
+        ["cmake", "-B", str(BUILD), "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"],
+        cwd=ROOT,
+        check=True,
+    )
+
+
+def main(argv: list[str]) -> int:
+    if argv:
+        # Called with explicit files (e.g. by pre-commit): only check the .cpp.
+        files = [Path(a) for a in argv if a.endswith(CPP_SUFFIXES)]
+        if not files:
+            return 0  # nothing of ours to check
+    else:
+        files = sorted(SRC.rglob("*.cpp"))
+        if not files:
+            print("No source files to check yet.")
+            return 0
+
+    configure()
+    cmd = ["clang-tidy", "-p", str(BUILD), "--warnings-as-errors=*"]
+    cmd += [str(f) for f in files]
+    print("Running:", " ".join(cmd))
+    return subprocess.run(cmd, cwd=ROOT).returncode
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))
+```
+
+- [ ] **Step 4: Create `.vscode/extensions.json`**
+
+```json
+{
+  "recommendations": [
+    "llvm-vs-code-extensions.vscode-clangd",
+    "ms-vscode.cmake-tools",
+    "ms-vscode.cpptools"
+  ]
+}
+```
+
+- [ ] **Step 5: Create `.vscode/settings.json`**
+
+`clangd` provides inline clang-tidy and formatting; the C/C++ extension is kept
+only for its debugger, so its IntelliSense is disabled to avoid duplicate
+squiggles.
+
+```json
+{
+  "cmake.configureOnOpen": true,
+  "cmake.configureSettings": {
+    "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+  },
+  "clangd.arguments": [
+    "--clang-tidy",
+    "--compile-commands-dir=${workspaceFolder}/build",
+    "--header-insertion=never"
+  ],
+  "C_Cpp.intelliSenseEngine": "disabled",
+  "editor.formatOnSave": true,
+  "files.insertFinalNewline": true,
+  "files.trimTrailingWhitespace": true,
+  "[cpp]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+  },
+  "[c]": {
+    "editor.defaultFormatter": "llvm-vs-code-extensions.vscode-clangd"
+  }
+}
+```
+
+- [ ] **Step 6: Create `.vscode/tasks.json`**
+
+"Build + Tidy" is the default build task, so a single Ctrl/Cmd+Shift+B compiles
+the project and runs clang-tidy. (On Windows, change `python3` to `python` and
+`./build/sam_card_game` to `build\\Debug\\sam_card_game.exe`, or just use the
+CMake Tools status-bar buttons.)
+
+```json
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Configure",
+      "type": "shell",
+      "command": "cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build",
+      "type": "shell",
+      "command": "cmake --build build",
+      "dependsOn": "Configure",
+      "group": "build",
+      "problemMatcher": "$gcc"
+    },
+    {
+      "label": "Tidy",
+      "type": "shell",
+      "command": "python3 scripts/run_clang_tidy.py",
+      "problemMatcher": []
+    },
+    {
+      "label": "Build + Tidy",
+      "dependsOrder": "sequence",
+      "dependsOn": ["Build", "Tidy"],
+      "group": { "kind": "build", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Test",
+      "type": "shell",
+      "command": "ctest --test-dir build --output-on-failure",
+      "dependsOn": "Build",
+      "group": { "kind": "test", "isDefault": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "Run",
+      "type": "shell",
+      "command": "./build/sam_card_game",
+      "dependsOn": "Build",
+      "problemMatcher": []
+    }
+  ]
+}
+```
+
+- [ ] **Step 7: Create `.vscode/launch.json`**
+
+```json
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug game",
+      "type": "cppdbg",
+      "request": "launch",
+      "program": "${workspaceFolder}/build/sam_card_game",
+      "args": [],
+      "cwd": "${workspaceFolder}",
+      "preLaunchTask": "Build",
+      "MIMode": "lldb"
+    }
+  ]
+}
+```
+
+- [ ] **Step 8: Create `.pre-commit-config.yaml`**
 
 ```yaml
-# Runs automatically before each commit. clang-format auto-fixes style;
-# the hygiene hooks catch whitespace/merge-conflict mistakes.
+# Runs automatically before each commit. clang-format auto-fixes style; the local
+# clang-tidy hook runs the same script the editor and CI use, so nothing surprises
+# you after pushing. The hygiene hooks catch whitespace/merge-conflict mistakes.
 repos:
   - repo: https://github.com/pre-commit/mirrors-clang-format
     rev: v18.1.8
@@ -267,9 +466,18 @@ repos:
       - id: end-of-file-fixer
       - id: check-yaml
       - id: check-merge-conflict
+  - repo: local
+    hooks:
+      - id: clang-tidy
+        name: clang-tidy
+        entry: python3 scripts/run_clang_tidy.py
+        language: system
+        types_or: [c++]
+        pass_filenames: true
+        require_serial: true
 ```
 
-- [ ] **Step 4: Create `.github/workflows/ci.yml`**
+- [ ] **Step 9: Create `.github/workflows/ci.yml`**
 
 ```yaml
 name: CI
@@ -325,29 +533,32 @@ jobs:
           sudo apt-get install -y clang-tidy libasound2-dev libx11-dev libxrandr-dev \
             libxi-dev libgl1-mesa-dev libglu1-mesa-dev libxcursor-dev libxinerama-dev \
             libwayland-dev libxkbcommon-dev
-      - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release
-      - name: Run clang-tidy
-        run: |
-          find src -name '*.cpp' -print0 | xargs -0 clang-tidy -p build
+      - name: Run clang-tidy (same script as local)
+        run: python3 scripts/run_clang_tidy.py
 ```
 
-- [ ] **Step 5: Install the pre-commit hook locally**
+- [ ] **Step 10: Install the pre-commit hook locally**
 
 Run: `pre-commit install`
 Expected: `pre-commit installed at .git/hooks/pre-commit`.
 *(If `pre-commit` is not installed: `pip install pre-commit` or `brew install pre-commit` first.)*
 
-- [ ] **Step 6: Verify formatting passes on existing files**
+- [ ] **Step 11: Verify formatting passes on existing files**
 
 Run: `find src tests \( -name '*.cpp' -o -name '*.hpp' \) -print0 2>/dev/null | xargs -0 clang-format --dry-run --Werror`
 Expected: No output, exit code 0 (existing files already conform). `tests/` may not exist yet — that is fine.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 12: Verify the tidy runner works and the scaffold passes**
+
+Run: `python3 scripts/run_clang_tidy.py`
+Expected: Configures the build, runs clang-tidy on `src/app/Game.cpp` (the only `.cpp` so far), exit code 0 with no findings.
+**If clang-tidy flags something in the scaffold code:** add that specific check to the disabled list in `.clang-tidy` (e.g. `-readability-convert-member-functions-to-static`) and re-run until clean. The goal is a scaffold that passes its own gate; over-eager checks should be disabled, not worked around.
+
+- [ ] **Step 13: Commit**
 
 ```bash
-git add .clang-format .clang-tidy .pre-commit-config.yaml .github/
-git commit -m "chore: add clang-format, clang-tidy, pre-commit, and CI"
+git add .clang-format .clang-tidy scripts/ .vscode/ .pre-commit-config.yaml .github/
+git commit -m "chore: add formatting, local clang-tidy, VSCode tasks, pre-commit, CI"
 ```
 
 ---
@@ -1475,10 +1686,20 @@ assets/     card art / fonts (placeholders for now)
 
 ## Code quality
 
+Formatting and linting run **locally**, so nothing is changed behind your back
+after you push.
+
+- **In VSCode (recommended):** open the folder and accept the recommended
+  extensions. You then get clang-tidy warnings live as you type (via `clangd`)
+  and format-on-save. Press **Ctrl/Cmd+Shift+B** to **Build + Tidy** in one
+  step; other tasks (Tidy, Test, Run) are under *Terminal → Run Task*.
 - **Format:** `clang-format` (config in `.clang-format`).
-- **Lint:** `clang-tidy` (config in `.clang-tidy`), run in CI.
-- **Pre-commit:** run `pre-commit install` once; commits then auto-format.
-- **CI:** GitHub Actions builds on macOS/Linux/Windows and checks formatting.
+- **Lint:** `clang-tidy` (config in `.clang-tidy`). Run it anytime with
+  `python3 scripts/run_clang_tidy.py`.
+- **Pre-commit:** run `pre-commit install` once. Commits then auto-format and run
+  clang-tidy, so issues are caught before they reach CI.
+- **CI:** GitHub Actions builds on macOS/Linux/Windows, checks formatting, and
+  runs the same clang-tidy script.
 ```
 
 - [ ] **Step 3: Verify the README's build instructions actually work from clean**
@@ -1508,6 +1729,7 @@ git commit -m "docs: add README with where-to-add map and assets placeholder"
 - Cross-platform → T1 (portable APIs), T2 (CI matrix macOS/Linux/Windows). ✓
 - Runnable reference slice (window, placeholder card, click-to-flip animation) → T1, T4, T7, T8. ✓
 - clang-format / clang-tidy / pre-commit / CI → T2. ✓
+- clang-tidy local (editor via clangd + one-button VSCode task + pre-commit) → T2 (`.vscode/`, `scripts/run_clang_tidy.py`, local pre-commit hook). ✓
 - Lightweight tests (CTest + doctest, example test) → T3, T4. ✓
 - Module layout (cards/rules/render/input/players/app) → T3–T8. ✓
 - Player interface + AIPlayer (NPC) placeholder → T6. ✓
@@ -1518,4 +1740,4 @@ git commit -m "docs: add README with where-to-add map and assets placeholder"
 
 **3. Type consistency:** `Deck` API (`buildStandardDeck`, `size`, `empty`, `add`, `draw`, `shuffle`, `cards`) consistent across T3 header/impl/tests. `FlipAnimation` API (`start`, `update`, `active`, `progress`, `horizontalScale`, `pastMidpoint`) consistent across T4 and its use in T8. `GameState` fields (`drawPile`, `table`, `currentPlayer`, `reset`) consistent across T5/T6. `CardRenderer::draw(card, bounds, horizontalScale, showFace)` and `InputHandler::clickedIn/hovering` signatures match between T7 definition and T8 use. `Card::label()` defined T3, used T7. ✓
 
-**Deviation logged:** clang-tidy runs in CI rather than pre-commit (rationale in "File Structure" note) — a deliberate, documented choice, not a gap.
+**Risk logged:** the scaffold must pass its own `clang-tidy --warnings-as-errors=*` gate. The check set is curated to be conservative, and T2 Step 12 explicitly verifies this and disables any over-eager check inline — so execution cannot be blocked by the linter walling the scaffold.

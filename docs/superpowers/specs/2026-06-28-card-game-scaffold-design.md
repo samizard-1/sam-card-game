@@ -27,9 +27,10 @@ animation, mouse input, the NPC).
 | Target platforms | Cross-platform: macOS, Linux, Windows |
 | Reference code level | Runnable reference slice (window + placeholder cards + click-to-flip animation) |
 | Formatting | `clang-format` (LLVM-based style) |
-| Linting | `clang-tidy` (bug/modernize/readability checks) |
-| Git guardrail | `pre-commit` hooks (auto format + lint on commit) |
-| CI | GitHub Actions (build + format/lint check on push/PR) |
+| Linting | `clang-tidy`, run **locally** (editor + one-button task + pre-commit) and in CI |
+| Editor integration | VSCode: `clangd` for inline clang-tidy, CMake Tools, one-button Build/Tidy/Test/Run, format-on-save |
+| Git guardrail | `pre-commit` hooks (clang-format auto-fix + clang-tidy check on commit) |
+| CI | GitHub Actions (build + format check + clang-tidy on push/PR) |
 | Tests | Lightweight: `tests/` wired into CTest with one example test (doctest) |
 | C++ standard | C++20 |
 
@@ -44,12 +45,19 @@ sam-card-game/
 ├── README.md                   # how to build/run + "where do I add X?" map
 ├── LICENSE
 ├── .clang-format               # formatting style config
-├── .clang-tidy                 # lint check config
-├── .pre-commit-config.yaml     # auto-format/lint on commit
+├── .clang-tidy                 # lint check config (also used by clangd in-editor)
+├── .pre-commit-config.yaml     # auto-format + clang-tidy check on commit
 ├── .gitignore                  # ignores build/ and editor cruft
+├── .vscode/                    # one-button build/tidy/test/run + clangd setup
+│   ├── extensions.json         #   recommended extensions (clangd, CMake Tools)
+│   ├── settings.json           #   inline clang-tidy + format-on-save
+│   ├── tasks.json              #   Build / Tidy / Build+Tidy / Test / Run
+│   └── launch.json             #   debug the game
+├── scripts/
+│   └── run_clang_tidy.py       # shared tidy runner (task + pre-commit + CI)
 ├── .github/
 │   └── workflows/
-│       └── ci.yml              # build + format/lint check on push/PR
+│       └── ci.yml              # build + format check + clang-tidy on push/PR
 ├── assets/
 │   └── README.md               # placeholder; where card art & fonts go
 ├── docs/
@@ -136,13 +144,26 @@ input → animate) working end-to-end and copies it when filling in real logic.
 - **Build:** CMake with C++20. `FetchContent` pulls raylib and doctest at
   configure time, so a fresh clone builds with:
   `cmake -B build && cmake --build build` — nothing to pre-install.
-- **Formatting:** `.clang-format` (LLVM-based style).
-- **Linting:** `.clang-tidy` enabling bug-prone, modernize, and readability
-  check groups (tuned to avoid noise for a learning codebase).
-- **pre-commit:** `.pre-commit-config.yaml` runs clang-format and clang-tidy
-  before each commit so unformatted/unlinted code never lands.
-- **CI:** GitHub Actions workflow builds on macOS, Linux, and Windows and fails
-  the build on formatting or lint drift.
+- **Formatting:** `.clang-format` (LLVM-based style). VSCode formats on save, so
+  code is tidied visibly as the beginner works — never silently changed later.
+- **Linting (run locally, not just in CI):** `.clang-tidy` with a curated,
+  high-signal check set (bug-prone, performance, and a few high-value
+  modernize/readability checks) tuned to avoid noise for a learning codebase.
+  clang-tidy reaches the beginner three ways: live in the editor via `clangd`,
+  on demand via a one-button VSCode task, and as a pre-commit check.
+- **Shared tidy runner:** `scripts/run_clang_tidy.py` is the single entry point
+  used by the VSCode task, the pre-commit hook, and CI, so the linter behaves
+  identically everywhere. It (re)generates `compile_commands.json` and runs
+  clang-tidy over the project's own sources.
+- **VSCode integration:** `.vscode/` provides recommended extensions (`clangd`,
+  CMake Tools, C/C++ for debugging), inline clang-tidy + format-on-save settings,
+  and tasks for **Build**, **Tidy**, **Build + Tidy** (the default build, one
+  keystroke), **Test**, and **Run**, plus a debug launch config.
+- **pre-commit:** `.pre-commit-config.yaml` runs clang-format (auto-fix) and the
+  clang-tidy check before each commit, so nothing unformatted or unlinted lands
+  — and there are no surprises after pushing.
+- **CI:** GitHub Actions workflow builds on macOS, Linux, and Windows, checks
+  formatting, and runs the same clang-tidy script.
 - **Tests:** `tests/deck_test.cpp` wired into CTest using doctest, with one
   example assertion, demonstrating where to test rules.
 

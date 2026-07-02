@@ -5,30 +5,43 @@
 
 namespace render {
 
-void FlipAnimation::start(float durationSeconds) {
+void FlipAnimation::start(float animationDuration, float flipDuration) {
     active_ = true;
+    flipped_ = true;
     elapsed_ = 0.0f;
-    duration_ = durationSeconds;
+    animationDuration_ = animationDuration;
+    flipTimer_ = 0;
+    flipDuration_ = flipDuration;
+    // randomly choose the card that will be flipped from all available cards in the deck
+    // chosenCard = deck.choose()
 }
 
 void FlipAnimation::update(float dt) {
+    flipTimer_ += dt;
+    if (flipTimer_ >= flipDuration_) {
+        flipTimer_ = 0;
+        flipped_ = false;
+    }
+
     if (!active_) {
         return;
     }
     elapsed_ += dt;
-    if (elapsed_ >= duration_) {
-        elapsed_ = duration_;
+    if (elapsed_ >= animationDuration_) {
+        elapsed_ = animationDuration_;
         active_ = false;
     }
 }
 
 bool FlipAnimation::active() const { return active_; }
 
+bool FlipAnimation::flipped() const { return flipped_; }
+
 float FlipAnimation::progress() const {
-    if (duration_ <= 0.0f) {
+    if (animationDuration_ <= 0.0f) {
         return 1.0f;
     }
-    return std::clamp(elapsed_ / duration_, 0.0f, 1.0f);
+    return std::clamp(elapsed_ / animationDuration_, 0.0f, 1.0f);
 }
 
 float FlipAnimation::horizontalScale() const {

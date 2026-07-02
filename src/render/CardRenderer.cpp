@@ -1,6 +1,7 @@
 // CardRenderer implementation. This is the single place that controls how a
 // card looks on screen: colors, shapes, and eventually custom art.
 #include "render/CardRenderer.hpp"
+#include "Config.hpp"
 
 #include <string>
 
@@ -9,9 +10,9 @@ namespace render {
 void CardRenderer::draw(const cards::Card &card, Rectangle bounds, float horizontalScale,
                         bool showFace) const {
     // Squash horizontally around the card's center to fake a 3D flip.
-    const float squashedWidth = bounds.width * horizontalScale;
+    const float squashedWidth = Config::kCardWidth * horizontalScale;
     Rectangle drawn = bounds;
-    drawn.x = bounds.x + (bounds.width - squashedWidth) / 2.0f;
+    drawn.x = bounds.x + (Config::kCardWidth - squashedWidth) / 2.0f;
     drawn.width = squashedWidth;
 
     // TODO(you): replace these flat colors with your card art / styling.

@@ -37,13 +37,16 @@ add_library(game_core
     src/app/Game.cpp
     src/cards/Card.cpp
     src/cards/Deck.cpp
+    src/cards/Inventory.cpp
     src/render/Animation.cpp
     src/render/CardRenderer.cpp
+    src/render/InventoryRenderer.cpp
     src/rules/GameState.cpp
     src/rules/Rules.cpp
     src/players/HumanPlayer.cpp
     src/players/AIPlayer.cpp
     src/input/InputHandler.cpp
+    src/Config.hpp
 )
 target_include_directories(game_core PUBLIC src)
 target_link_libraries(game_core PUBLIC raylib)

@@ -21,6 +21,12 @@ struct Card {
 
     // Text drawn on the card face. Falls back to "Card #<id>" if unnamed.
     std::string label() const;
+
+    // Inventory designation for this card. Used to group cards in the inventory.
+    std::string inventorySlot() const;
+
+    // If the card has been added to the inventory already
+    bool addedToInventory = false;
 };
 
 } // namespace cards

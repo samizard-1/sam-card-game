@@ -11,12 +11,14 @@ namespace render {
 class FlipAnimation {
   public:
     // Starts a flip lasting `durationSeconds`.
-    void start(float durationSeconds);
+    void start(float durationSeconds, float flipDuration);
 
     // Advances by `dt` seconds. A no-op when no flip is running.
     void update(float dt);
 
     bool active() const;
+
+    bool flipped() const;
 
     // Normalized progress in [0, 1].
     float progress() const;
@@ -30,7 +32,10 @@ class FlipAnimation {
   private:
     bool active_ = false;
     float elapsed_ = 0.0f;
-    float duration_ = 0.0f;
+    float animationDuration_ = 0.0f;
+    float flipTimer_ = 0.0f;    // timer for flip animation
+    float flipDuration_ = 0.0f; // time to let the card remain flipped before flipping back
+    bool flipped_ = false;      // whether the card has been flipped or not
 };
 
 } // namespace render

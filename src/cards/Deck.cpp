@@ -12,10 +12,26 @@ Deck Deck::buildStandardDeck() {
     Deck deck;
     // TODO(you): replace these placeholder cards with your game's real deck.
     // If you change the count here, update the test in tests/deck_test.cpp.
-    for (int i = 1; i <= 5; ++i) {
+    // Card demoCard;
+    // demoCard.id = 1;
+    // demoCard.name = "Hello Card";
+    // deck.add(demoCard);
+
+    // inventoryDemoCard.id = 2;
+    // inventoryDemoCard.name = "Hello Card";
+    // inventoryDemoCard.facing = cards::Facing::Up;
+    // cardTwo.id = 3;
+    // cardTwo.name = "Card Two";
+    // inventoryCardTwo.id = 4;
+    // inventoryCardTwo.name = "Card Two";
+
+    int i = 1;
+    for (char c : {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+                   'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}) {
         Card card;
-        card.id = i;
-        card.name = "Card " + std::to_string(i);
+        card.id = i++;
+        // card.name = std::to_string(c) + " Card";
+        card.name = std::string(1, c) + " Card";
         deck.add(card);
     }
     return deck;

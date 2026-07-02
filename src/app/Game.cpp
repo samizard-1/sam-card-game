@@ -56,16 +56,23 @@ void Game::run() {
 
 void Game::updateMain(float dt) {
 
-    // Click the card to start a flip (ignored while one is already running).
-    if (!flip_.flipped() && input_.clickedIn(cardBounds())) {
-        flip_.start(kFlipDuration, kFlipBackDuration);
-        swappedThisFlip_ = false;
-        this->card = deck_.draw(); // draw a card from the deck when the card is clicked
-        // add the card to the inventory if the card has not already
-        // been added to the inventory
-        if (!this->card.addedToInventory) {
-            inventories_[this->card.inventorySlot()].add(this->card);
-            this->card.addedToInventory = true;
+    // only flip cards if there are any left in the deck
+    if (!Game::deck_.empty()) {
+        // Click the card to start a flip (ignored while one is already running).
+        if (!flip_.flipped() && input_.clickedIn(cardBounds())) {
+            flip_.start(kFlipDuration, kFlipBackDuration);
+            swappedThisFlip_ = false;
+            if (!deck_.empty()) {
+                this->card = deck_.draw(); // draw a card from the deck when the card is clicked
+            } else {
+                DrawText("No More Cards in the Deck", cardBounds().x, cardBounds().y, 20, RED);
+            }
+            // add the card to the inventory if the card has not already
+            // been added to the inventory
+            if (!this->card.addedToInventory) {
+                inventories_[this->card.inventorySlot()].add(this->card);
+                this->card.addedToInventory = true;
+            }
         }
     }
 
@@ -127,7 +134,9 @@ void Game::updateInventory(float dt) {
 void Game::drawMain() const {
     DrawText("Click the card to flip it.", 20, 20, 20, DARKGRAY);
     const float scale = flip_.active() ? flip_.horizontalScale() : 1.0f;
-    cardRenderer_.draw(this->card, Game::cardBounds(), scale, showFace_);
+    if (!(Game::deck_.empty() & (Game::showFace_ == false))) {
+        cardRenderer_.draw(this->card, Game::cardBounds(), scale, showFace_);
+    }
 
     DrawRectangleRec(AButton_.bounds, YELLOW);
     DrawText("A", 10, GetScreenHeight() - 40, 20, GRAY);

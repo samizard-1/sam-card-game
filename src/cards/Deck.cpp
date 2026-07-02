@@ -12,10 +12,25 @@ Deck Deck::buildStandardDeck() {
     Deck deck;
     // TODO(you): replace these placeholder cards with your game's real deck.
     // If you change the count here, update the test in tests/deck_test.cpp.
-    // Card demoCard;
-    // demoCard.id = 1;
-    // demoCard.name = "Hello Card";
-    // deck.add(demoCard);
+    Card demoCard;
+    demoCard.id = 1;
+    demoCard.name = "Hello Card";
+    deck.add(demoCard);
+
+    Card demoCard2;
+    demoCard2.id = 2;
+    demoCard2.name = "Tello Card";
+    deck.add(demoCard2);
+
+    Card demoCard3;
+    demoCard3.id = 3;
+    demoCard3.name = "Hacker";
+    deck.add(demoCard3);
+
+    Card demoCard4;
+    demoCard4.id = 4;
+    demoCard4.name = "Hat Card";
+    deck.add(demoCard4);
 
     // inventoryDemoCard.id = 2;
     // inventoryDemoCard.name = "Hello Card";
@@ -25,15 +40,15 @@ Deck Deck::buildStandardDeck() {
     // inventoryCardTwo.id = 4;
     // inventoryCardTwo.name = "Card Two";
 
-    int i = 1;
-    for (char c : {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
-                   'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}) {
-        Card card;
-        card.id = i++;
-        // card.name = std::to_string(c) + " Card";
-        card.name = std::string(1, c) + " Card";
-        deck.add(card);
-    }
+    // int i = 1;
+    // for (char c : {'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L', 'M',
+    //                'N', 'O', 'P', 'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z'}) {
+    //     Card card;
+    //     card.id = i++;
+    //     // card.name = std::to_string(c) + " Card";
+    //     card.name = std::string(1, c) + " Card";
+    //     deck.add(card);
+    // }
     return deck;
 }
 
